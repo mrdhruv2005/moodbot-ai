@@ -1,0 +1,12 @@
+# Virtual environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Environment variables (NEVER COMMIT API KEYS)
+.env
+
+# System files
+.DS_Store

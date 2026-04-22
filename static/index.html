@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoodBot AI — Chat with Personality</title>
+<meta name="description" content="An AI chatbot that adapts its personality based on your chosen mood.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- React CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-primary:#0a0a0f;--bg-secondary:#111118;--bg-tertiary:#16161f;
+  --bg-card:rgba(255,255,255,0.035);--bg-card-hover:rgba(255,255,255,0.06);
+  --text-primary:#ededf5;--text-secondary:#9191a8;--text-muted:#5a5a72;
+  --accent:#7c6cf0;--accent-light:#9d8fff;--accent-glow:rgba(124,108,240,0.25);
+  --accent-deep:#5b4bc9;
+  --border:rgba(255,255,255,0.06);--border-active:rgba(124,108,240,0.45);
+  --success:#2ed8a3;--danger:#ff5c6c;
+  --mood-normal:#7c6cf0;--mood-angry:#ef4444;--mood-sad:#3b82f6;--mood-romantic:#ec4899;
+  --glass:rgba(255,255,255,0.02);
+  --radius:20px;--radius-md:14px;--radius-sm:10px;--radius-xs:8px;
+  --shadow-lg:0 16px 48px rgba(0,0,0,0.45);--shadow-md:0 8px 24px rgba(0,0,0,0.3);
+  --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --transition-fast:all 0.15s cubic-bezier(0.4,0,0.2,1);
+}
+html,body,#root{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg-primary);color:var(--text-primary);overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse at 15% 50%,rgba(124,108,240,0.07) 0%,transparent 50%),
+    radial-gradient(ellipse at 85% 20%,rgba(236,72,153,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 90%,rgba(59,130,246,0.04) 0%,transparent 40%),
+    var(--bg-primary);
+}
+#root{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+
+/* ── Animated Orbs ── */
+.orb{position:fixed;border-radius:50%;filter:blur(100px);opacity:0.12;pointer-events:none;animation:orbFloat 25s ease-in-out infinite}
+.orb-1{width:500px;height:500px;background:var(--mood-normal);top:-150px;left:-150px}
+.orb-2{width:350px;height:350px;background:var(--mood-romantic);bottom:-100px;right:-100px;animation-delay:-8s}
+.orb-3{width:280px;height:280px;background:var(--mood-sad);top:40%;left:60%;animation-delay:-16s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(40px,-50px) scale(1.08)}50%{transform:translate(-30px,40px) scale(0.92)}75%{transform:translate(20px,-20px) scale(1.05)}}
+
+/* ── App Shell ── */
+.app{width:min(920px,95vw);height:min(720px,93vh);display:flex;flex-direction:column;
+  background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-lg);overflow:hidden;position:relative;z-index:1;
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+
+/* ── Header ── */
+.header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:var(--glass);flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:14px}
+.logo{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;background:linear-gradient(135deg,var(--accent),var(--mood-romantic));
+  box-shadow:0 4px 20px var(--accent-glow);position:relative;overflow:hidden}
+.logo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%);
+  animation:logoShine 3s ease-in-out infinite}
+@keyframes logoShine{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+.header-info h1{font-size:17px;font-weight:700;background:linear-gradient(135deg,var(--text-primary) 30%,var(--accent-light));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.3px}
+.header-info p{font-size:11px;color:var(--text-muted);margin-top:1px;letter-spacing:0.2px;transition:var(--transition)}
+.header-actions{display:flex;gap:8px}
+.icon-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-xs);
+  background:var(--bg-card);color:var(--text-secondary);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:var(--transition);font-size:14px}
+.icon-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(255,92,108,0.08);transform:translateY(-1px)}
+
+/* ── Mood Bar ── */
+.mood-bar{padding:10px 24px;display:flex;gap:6px;border-bottom:1px solid var(--border);
+  background:var(--glass);flex-shrink:0}
+.mood-chip{flex:1;padding:10px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg-card);cursor:pointer;transition:var(--transition);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-family:inherit;font-size:13px;font-weight:500;color:var(--text-secondary);position:relative;overflow:hidden}
+.mood-chip::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.3s;z-index:0}
+.mood-chip:hover{border-color:rgba(255,255,255,0.1);transform:translateY(-1px);background:var(--bg-card-hover)}
+.mood-chip.active{color:#fff;border-color:transparent;transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(0,0,0,0.35)}
+.mood-chip.active::before{opacity:1}
+.mood-chip[data-mood="normal"].active{background:linear-gradient(135deg,#7c6cf0,#a78bfa)}
+.mood-chip[data-mood="normal"].active::before{background:linear-gradient(135deg,#7c6cf0,#a78bfa)}
+.mood-chip[data-mood="angry"].active{background:linear-gradient(135deg,#ef4444,#f97316)}
+.mood-chip[data-mood="angry"].active::before{background:linear-gradient(135deg,#ef4444,#f97316)}
+.mood-chip[data-mood="sad"].active{background:linear-gradient(135deg,#3b82f6,#67e8f9)}
+.mood-chip[data-mood="sad"].active::before{background:linear-gradient(135deg,#3b82f6,#67e8f9)}
+.mood-chip[data-mood="romantic"].active{background:linear-gradient(135deg,#ec4899,#f472b6)}
+.mood-chip[data-mood="romantic"].active::before{background:linear-gradient(135deg,#ec4899,#f472b6)}
+.mood-emoji{font-size:17px;position:relative;z-index:1}
+.mood-label{position:relative;z-index:1}
+
+/* ── Chat Area ── */
+.chat-area{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:4px}
+.chat-area::-webkit-scrollbar-track{background:transparent}
+.chat-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+.chat-area::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
+
+/* ── Messages ── */
+.message{display:flex;gap:10px;max-width:82%;animation:msgSlide 0.45s cubic-bezier(0.16,1,0.3,1)}
+.message-user{align-self:flex-end;flex-direction:row-reverse}
+.message-bot{align-self:flex-start}
+@keyframes msgSlide{from{opacity:0;transform:translateY(16px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;margin-top:2px}
+.message-user .avatar{background:linear-gradient(135deg,var(--accent),var(--accent-light))}
+.message-bot .avatar{background:var(--bg-tertiary);border:1px solid var(--border)}
+.bubble{padding:12px 16px;border-radius:var(--radius-md);font-size:13.5px;line-height:1.65;
+  word-wrap:break-word;white-space:pre-wrap;letter-spacing:0.1px}
+.message-user .bubble{background:linear-gradient(135deg,var(--accent-deep),var(--accent));color:#fff;
+  border-bottom-right-radius:4px;box-shadow:0 4px 16px var(--accent-glow)}
+.message-bot .bubble{background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-primary);
+  border-bottom-left-radius:4px}
+
+/* ── Typing Dots ── */
+.typing-dots{display:flex;gap:5px;padding:4px 0;align-items:center;height:20px}
+.typing-dots span{width:7px;height:7px;background:var(--text-muted);border-radius:50%;
+  animation:bounce 1.4s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:0.15s}
+.typing-dots span:nth-child(3){animation-delay:0.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.35}30%{transform:translateY(-8px);opacity:1}}
+
+/* ── Welcome ── */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;gap:20px;text-align:center;padding:40px 20px;animation:welcomeFade 0.8s ease}
+@keyframes welcomeFade{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+.welcome-icon{font-size:60px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.welcome h2{font-size:24px;font-weight:800;background:linear-gradient(135deg,var(--text-primary),var(--accent-light));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px}
+.welcome p{font-size:14px;color:var(--text-muted);max-width:380px;line-height:1.7}
+.suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px}
+.suggestion{padding:8px 16px;border:1px solid var(--border);border-radius:20px;
+  background:var(--bg-card);color:var(--text-secondary);cursor:pointer;
+  font-size:12px;font-family:inherit;transition:var(--transition)}
+.suggestion:hover{border-color:var(--border-active);color:var(--accent-light);background:rgba(124,108,240,0.06);transform:translateY(-1px)}
+
+/* ── Input Area ── */
+.input-area{padding:14px 24px;border-top:1px solid var(--border);background:var(--glass);
+  display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.input-box{flex:1;position:relative}
+.input-box textarea{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:13.5px;
+  resize:none;outline:none;transition:var(--transition);min-height:44px;max-height:130px;line-height:1.5}
+.input-box textarea::placeholder{color:var(--text-muted)}
+.input-box textarea:focus{border-color:var(--border-active);box-shadow:0 0 0 3px var(--accent-glow);background:rgba(255,255,255,0.04)}
+.send-btn{width:44px;height:44px;border:none;border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,var(--accent-deep),var(--accent));color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:var(--transition);flex-shrink:0;
+  box-shadow:0 4px 16px var(--accent-glow);position:relative;overflow:hidden}
+.send-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.1) 50%,transparent 60%);
+  transform:translateX(-100%);transition:transform 0.5s}
+.send-btn:hover::after{transform:translateX(100%)}
+.send-btn:hover:not(:disabled){transform:scale(1.06);box-shadow:0 6px 24px var(--accent-glow)}
+.send-btn:active:not(:disabled){transform:scale(0.95)}
+.send-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;box-shadow:none}
+.send-btn svg{width:18px;height:18px;position:relative;z-index:1}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .app{width:100vw;height:100vh;border-radius:0;border:none}
+  .mood-bar{padding:8px 12px;gap:5px}.mood-chip{padding:8px 4px}.mood-emoji{font-size:15px}
+  .mood-label{font-size:11px}.chat-area{padding:16px}.message{max-width:90%}
+  .header{padding:12px 16px}.input-area{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ─── Config ──────────────────────────────────────────────────────
+const MOODS = [
+  { id: 'normal',   emoji: '🤖', label: 'Normal',   status: 'Helpful & friendly' },
+  { id: 'angry',    emoji: '😡', label: 'Angry',    status: 'Watch out! Grumpy mode' },
+  { id: 'sad',      emoji: '😢', label: 'Sad',      status: 'Feeling melancholic...' },
+  { id: 'romantic', emoji: '💕', label: 'Romantic', status: 'Feeling the love' },
+];
+
+const SUGGESTIONS = [
+  "Tell me a joke",
+  "What is AI?",
+  "Write me a poem",
+  "How's the weather?",
+];
+
+// ─── Components ──────────────────────────────────────────────────
+
+function Header({ mood, onClear }) {
+  const moodData = MOODS.find(m => m.id === mood);
+  return (
+    <div className="header">
+      <div className="header-left">
+        <div className="logo">🤖</div>
+        <div className="header-info">
+          <h1>MoodBot AI</h1>
+          <p>{moodData.emoji} {moodData.status}</p>
+        </div>
+      </div>
+      <div className="header-actions">
+        <button className="icon-btn" onClick={onClear} title="Clear chat">🗑️</button>
+      </div>
+    </div>
+  );
+}
+
+function MoodBar({ mood, onMoodChange }) {
+  return (
+    <div className="mood-bar">
+      {MOODS.map(m => (
+        <button
+          key={m.id}
+          className={`mood-chip ${mood === m.id ? 'active' : ''}`}
+          data-mood={m.id}
+          onClick={() => onMoodChange(m.id)}
+        >
+          <span className="mood-emoji">{m.emoji}</span>
+          <span className="mood-label">{m.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Message({ text, role, emoji }) {
+  const isUser = role === 'user';
+  return (
+    <div className={`message message-${role}`}>
+      <div className="avatar">{isUser ? '👤' : (emoji || '🤖')}</div>
+      <div className="bubble">{text}</div>
+    </div>
+  );
+}
+
+function TypingIndicator({ emoji }) {
+  return (
+    <div className="message message-bot">
+      <div className="avatar">{emoji}</div>
+      <div className="bubble">
+        <div className="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  );
+}
+
+function Welcome({ onSuggestionClick }) {
+  return (
+    <div className="welcome">
+      <div className="welcome-icon">✨</div>
+      <h2>Hey there! Ready to chat?</h2>
+      <p>Pick a mood above and I'll match your vibe. Try one of these to get started:</p>
+      <div className="suggestions">
+        {SUGGESTIONS.map((s, i) => (
+          <button key={i} className="suggestion" onClick={() => onSuggestionClick(s)}>{s}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatInput({ onSend, disabled }) {
+  const [text, setText] = useState('');
+  const textareaRef = useRef(null);
+
+  const handleSend = useCallback(() => {
+    const trimmed = text.trim();
+    if (!trimmed || disabled) return;
+    onSend(trimmed);
+    setText('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [text, disabled, onSend]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const autoResize = (el) => {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+  };
+
+  useEffect(() => {
+    if (!disabled && textareaRef.current) textareaRef.current.focus();
+  }, [disabled]);
+
+  return (
+    <div className="input-area">
+      <div className="input-box">
+        <textarea
+          ref={textareaRef}
+          rows="1"
+          placeholder="Type your message..."
+          value={text}
+          onChange={(e) => { setText(e.target.value); autoResize(e.target); }}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
+      </div>
+      <button
+        className="send-btn"
+        onClick={handleSend}
+        disabled={!text.trim() || disabled}
+        title="Send message"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ─── Main App ────────────────────────────────────────────────────
+
+function App() {
+  const [mood, setMood] = useState('normal');
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState('session_' + Date.now());
+  const chatRef = useRef(null);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const handleMoodChange = (newMood) => {
+    setMood(newMood);
+    setSessionId('session_' + Date.now());
+  };
+
+  const handleClear = async () => {
+    try {
+      await fetch('/api/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    } catch (e) {}
+    setMessages([]);
+    setSessionId('session_' + Date.now());
+  };
+
+  const sendMessage = async (text) => {
+    if (isLoading) return;
+
+    const moodData = MOODS.find(m => m.id === mood);
+    const userMsg = { role: 'user', text, emoji: '👤' };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, mood, session_id: sessionId }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setMessages(prev => [...prev, { role: 'bot', text: '⚠️ ' + data.error, emoji: '⚠️' }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'bot', text: data.response, emoji: data.emoji || moodData.emoji }]);
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'bot', text: '⚠️ Could not connect to server. Is it running?', emoji: '⚠️' }]);
+    }
+
+    setIsLoading(false);
+  };
+
+  const currentMoodEmoji = MOODS.find(m => m.id === mood)?.emoji || '🤖';
+
+  return (
+    <div className="app">
+      <Header mood={mood} onClear={handleClear} />
+      <MoodBar mood={mood} onMoodChange={handleMoodChange} />
+
+      <div className="chat-area" ref={chatRef}>
+        {messages.length === 0 && !isLoading ? (
+          <Welcome onSuggestionClick={sendMessage} />
+        ) : (
+          <>
+            {messages.map((msg, i) => (
+              <Message key={i} text={msg.text} role={msg.role} emoji={msg.emoji} />
+            ))}
+            {isLoading && <TypingIndicator emoji={currentMoodEmoji} />}
+          </>
+        )}
+      </div>
+
+      <ChatInput onSend={sendMessage} disabled={isLoading} />
+    </div>
+  );
+}
+
+// ─── Mount ───────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
