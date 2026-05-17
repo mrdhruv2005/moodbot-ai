@@ -13,3 +13,9 @@ fastapi
 uvicorn
 requests
 langchain_huggingface
+gradio
+langchain
+openai
+python-dotenv
+flask
+gunicorn

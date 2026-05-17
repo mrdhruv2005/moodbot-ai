@@ -2,11 +2,32 @@
 .venv/
 venv/
 env/
+
+# Python cache
 __pycache__/
 *.pyc
 
 # Environment variables (NEVER COMMIT API KEYS)
 .env
 
-# System files
+# Git / OS files
 .DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Build / logs
+*.log
+
+# Python build files
+dist/
+build/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node modules (agar future me use karo)
+node_modules/
